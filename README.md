@@ -1,13 +1,13 @@
 # Udacity
 Udacity - Dog Breed Classifier
 
-Dear Harpreet,
-
-Here is the code that I'm working on. I have a couple of issues that I'm aware of:
+I have a couple of issues that I'm aware of:
 - training is still not working
 - not sure if my computer can handle the training without GPU
 - if I'm trying to use GPU (Udacity env in browser) I cannot access the data
 
-All tips welcome!
+Udacity - RNN for script generation
 
-Rens
+Issues I'm aware of:
+- dataloader does not work
+- not sure if I should use TensorDataset anywhere
