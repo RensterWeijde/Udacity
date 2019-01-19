@@ -13158,11 +13158,37 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">glob</span> <span class="k">import</span> <span class="n">glob</span> <span class="c1"># to find files with similar types</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">cv2</span>                
+<span class="kn">from</span> <span class="nn">glob</span> <span class="k">import</span> <span class="n">glob</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">matplotlib.image</span> <span class="k">as</span> <span class="nn">mpimg</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">os.path</span><span class="o">,</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="k">import</span> <span class="n">Variable</span>
+<span class="kn">import</span> <span class="nn">torch.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="k">import</span> <span class="n">lr_scheduler</span>
+<span class="kn">import</span> <span class="nn">torchvision</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="k">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">transforms</span>
+</pre></div>
 
-<span class="c1"># load filenames for human and dog images</span>
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># load filenames for human and dog images</span>
 <span class="c1"># transform to np</span>
 <span class="n">human_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;lfw/*/*&quot;</span><span class="p">))</span>
 <span class="n">dog_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;dogImages/*/*/*&quot;</span><span class="p">))</span>
@@ -13436,7 +13462,7 @@ Human faces detected in dogs dataset:  18
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
@@ -13655,19 +13681,24 @@ Human faces detected in dogs dataset:  18
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[27]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># transformation: resize, gray, tensor, normalize</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># transformation for train, test, valid: resize, tensor, normalize</span>
+<span class="c1"># no grayscale added - screwed up the format </span>
 <span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transforms</span>
 
 <span class="n">prep_train</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">RandomResizedCrop</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span> 
                                  <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span> 
                                  <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])))</span>
 
-<span class="n">prep_test</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
+<span class="n">prep_test</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> 
+                                <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+                                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
 
-<span class="n">prep_valid</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
+<span class="n">prep_valid</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> 
+                                 <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+                                 <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
 </pre></div>
 
     </div>
@@ -13677,7 +13708,30 @@ Human faces detected in dogs dataset:  18
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[28]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># transformation + augmentation for training set</span>
+<span class="n">prep2_train</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomResizedCrop</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomHorizontalFlip</span><span class="p">(),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomAffine</span><span class="p">(</span><span class="n">degrees</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">),</span> <span class="n">shear</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fillcolor</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomApply</span><span class="p">([</span><span class="n">transforms</span><span class="o">.</span><span class="n">ColorJitter</span><span class="p">(</span><span class="n">brightness</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">contrast</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)],</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomGrayscale</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mf">0.485</span><span class="p">,</span> <span class="mf">0.456</span><span class="p">,</span> <span class="mf">0.406</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.229</span><span class="p">,</span> <span class="mf">0.224</span><span class="p">,</span> <span class="mf">0.225</span><span class="p">])</span>
+    <span class="p">])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
@@ -13874,7 +13928,37 @@ Dogs correctly classified as dogs: 89
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[31]:</div>
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">cv2</span>                
+<span class="kn">from</span> <span class="nn">glob</span> <span class="k">import</span> <span class="n">glob</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">matplotlib.image</span> <span class="k">as</span> <span class="nn">mpimg</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">os.path</span><span class="o">,</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="k">import</span> <span class="n">Variable</span>
+<span class="kn">import</span> <span class="nn">torch.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">from</span> <span class="nn">torch.optim</span> <span class="k">import</span> <span class="n">lr_scheduler</span>
+<span class="kn">import</span> <span class="nn">torchvision</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="k">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">transforms</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">dog_train_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;dogImages/train/*/*&quot;</span><span class="p">))</span>
@@ -13889,11 +13973,45 @@ Dogs correctly classified as dogs: 89
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[39]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># test if the filepaths work</span>
-<span class="c1"># check the file sizes of the images used - note the different sizes</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Length of the dog train files:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dog_train_files</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Length of the dog test files:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dog_test_files</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Length of the dog validation files:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dog_valid_files</span><span class="p">))</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Length of the dog train files: 6680
+Length of the dog test files: 836
+Length of the dog validation files: 835
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># check an example</span>
 <span class="n">dog_train_test</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">dog_train_files</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># gives np.array</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dog_train_test</span><span class="p">)</span>
 </pre></div>
@@ -13908,13 +14026,13 @@ Dogs correctly classified as dogs: 89
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[39]:</div>
+    <div class="prompt output_prompt">Out[7]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.image.AxesImage at 0x105217048&gt;</pre>
+<pre>&lt;matplotlib.image.AxesImage at 0x1265d8c50&gt;</pre>
 </div>
 
 </div>
@@ -13940,7 +14058,7 @@ Dogs correctly classified as dogs: 89
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[37]:</div>
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">dog_train_test</span><span class="o">.</span><span class="n">shape</span>
@@ -13956,13 +14074,13 @@ Dogs correctly classified as dogs: 89
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[37]:</div>
+    <div class="prompt output_prompt">Out[8]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>(480, 640, 3)</pre>
+<pre>(223, 240, 3)</pre>
 </div>
 
 </div>
@@ -13973,7 +14091,7 @@ Dogs correctly classified as dogs: 89
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[41]:</div>
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">dog_test_test</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">dog_test_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -13990,13 +14108,13 @@ Dogs correctly classified as dogs: 89
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[41]:</div>
+    <div class="prompt output_prompt">Out[9]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.image.AxesImage at 0x11d9b5400&gt;</pre>
+<pre>&lt;matplotlib.image.AxesImage at 0x1266a62e8&gt;</pre>
 </div>
 
 </div>
@@ -14055,54 +14173,35 @@ Dogs correctly classified as dogs: 89
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[42]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># check the length of the datasets</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Amount of dog training images: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dog_train_files</span><span class="p">)))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Amount of dog validation images: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dog_valid_files</span><span class="p">)))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Amount of dog test images: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dog_test_files</span><span class="p">)))</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Amount of dog training images: 6680
-Amount of dog validation images: 835
-Amount of dog test images: 836
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[84]:</div>
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># use the transforms functions made earlier</span>
 <span class="c1"># Grayscale is removed</span>
+<span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transforms</span>
+
 <span class="n">prep_train</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">RandomResizedCrop</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span> 
-                                 <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                                 <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span> 
                                  <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])))</span>
 
-<span class="n">prep_test</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
+<span class="n">prep_test</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> 
+                                <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+                                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
 
-<span class="n">prep_valid</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
+<span class="n">prep_valid</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">((</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]),</span> 
+                                 <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+                                 <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()))</span>
+
+<span class="n">prep2_train</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomResizedCrop</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomHorizontalFlip</span><span class="p">(),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomAffine</span><span class="p">(</span><span class="n">degrees</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">),</span> <span class="n">shear</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fillcolor</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomApply</span><span class="p">([</span><span class="n">transforms</span><span class="o">.</span><span class="n">ColorJitter</span><span class="p">(</span><span class="n">brightness</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">contrast</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)],</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">RandomGrayscale</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mf">0.485</span><span class="p">,</span> <span class="mf">0.456</span><span class="p">,</span> <span class="mf">0.406</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.229</span><span class="p">,</span> <span class="mf">0.224</span><span class="p">,</span> <span class="mf">0.225</span><span class="p">])</span>
+    <span class="p">])</span>
 </pre></div>
 
     </div>
@@ -14112,7 +14211,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[85]:</div>
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># transform all three data sources with the specific transformer</span>
@@ -14132,13 +14231,13 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[86]:</div>
+<div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># check data type</span>
-<span class="c1"># can&#39;t check shape here, why?</span>
-<span class="c1"># doesn&#39;t look normalized (0-1), why?</span>
-<span class="n">train_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># can&#39;t check the data type here</span>
+<span class="c1"># what is the zero at the end? </span>
+<span class="c1"># no label?</span>
+<span class="n">train_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -14151,35 +14250,35 @@ Amount of dog test images: 836
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[86]:</div>
+    <div class="prompt output_prompt">Out[12]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>(tensor([[[-1.6373, -1.3235, -1.5980,  ..., -1.4216, -1.6176, -1.2647],
-          [-0.8333, -1.5588, -0.6176,  ..., -1.5784, -1.4412, -1.2451],
-          [-1.5784, -1.7353, -1.1667,  ..., -1.4020, -1.3431, -1.8725],
+<pre>(tensor([[[-0.2255, -0.5196, -0.4412,  ..., -1.3039, -1.3235, -1.2843],
+          [-0.2451, -0.4804, -0.3431,  ..., -1.2451, -1.1667, -1.1667],
+          [-0.1863, -0.3627, -0.2255,  ..., -1.2059, -1.1275, -1.2059],
           ...,
-          [ 2.1471,  1.9902,  2.0294,  ...,  2.0294,  2.0882,  1.7549],
-          [ 2.1667,  2.1275,  2.1275,  ...,  1.8725,  2.0882,  2.0686],
-          [ 2.1667,  2.0882,  2.1471,  ...,  2.2059,  1.7941,  1.8529]],
+          [ 0.3431,  0.3431,  0.3431,  ...,  0.3431,  0.3431,  0.3431],
+          [ 0.5196,  0.5196,  0.5196,  ...,  0.5196,  0.5196,  0.5196],
+          [ 0.7941,  0.7941,  0.7941,  ...,  0.7941,  0.7941,  0.7941]],
  
-         [[-1.1078, -0.7549, -0.9706,  ..., -0.6569, -0.8529, -0.5000],
-          [-0.2843, -1.0098, -0.0098,  ..., -0.8333, -0.6765, -0.4608],
-          [-1.0098, -1.1863, -0.5588,  ..., -0.6569, -0.5784, -1.0686],
+         [[-0.5588, -0.8333, -0.7353,  ..., -1.3039, -1.3235, -1.2843],
+          [-0.5980, -0.8137, -0.6373,  ..., -1.2451, -1.1667, -1.1667],
+          [-0.5392, -0.6961, -0.5392,  ..., -1.2059, -1.1275, -1.2059],
           ...,
-          [ 1.4804,  1.3431,  1.3824,  ...,  1.6373,  1.6176,  1.1863],
-          [ 1.5000,  1.4412,  1.4608,  ...,  1.5000,  1.6176,  1.5196],
-          [ 1.4608,  1.3431,  1.4216,  ...,  1.9510,  1.3824,  1.3235]],
+          [ 0.3431,  0.3431,  0.3431,  ...,  0.3431,  0.3431,  0.3431],
+          [ 0.5196,  0.5196,  0.5196,  ...,  0.5196,  0.5196,  0.5196],
+          [ 0.7941,  0.7941,  0.7941,  ...,  0.7941,  0.7941,  0.7941]],
  
-         [[-1.8137, -1.5588, -1.5980,  ..., -1.6961, -1.7353, -1.1471],
-          [-0.9706, -1.6569, -0.5196,  ..., -1.8529, -1.6569, -1.3431],
-          [-1.5588, -1.6373, -1.0098,  ..., -1.6569, -1.6569, -2.1471],
+         [[-0.9118, -1.1471, -0.9902,  ..., -1.4608, -1.4804, -1.4412],
+          [-0.9902, -1.1471, -0.9118,  ..., -1.4020, -1.3235, -1.3235],
+          [-0.9314, -1.0686, -0.8333,  ..., -1.3627, -1.2843, -1.3627],
           ...,
-          [ 1.1078,  0.9706,  1.0294,  ...,  1.3235,  1.3235,  0.9118],
-          [ 1.1863,  1.1471,  1.1667,  ...,  1.3235,  1.4216,  1.2843],
-          [ 1.2255,  1.1275,  1.2255,  ...,  1.8725,  1.2647,  1.1275]]]), 0)</pre>
+          [ 0.3431,  0.3431,  0.3431,  ...,  0.3431,  0.3431,  0.3431],
+          [ 0.5196,  0.5196,  0.5196,  ...,  0.5196,  0.5196,  0.5196],
+          [ 0.7941,  0.7941,  0.7941,  ...,  0.7941,  0.7941,  0.7941]]]), 0)</pre>
 </div>
 
 </div>
@@ -14190,7 +14289,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[87]:</div>
+<div class="prompt input_prompt">In&nbsp;[13]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># use DataLoaders to create batches and shuffles</span>
@@ -14224,9 +14323,9 @@ Amount of dog test images: 836
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>&lt;torch.utils.data.dataloader.DataLoader object at 0x165601e48&gt;
-&lt;torch.utils.data.dataloader.DataLoader object at 0x1656016a0&gt;
-&lt;torch.utils.data.dataloader.DataLoader object at 0x11d9d0ef0&gt;
+<pre>&lt;torch.utils.data.dataloader.DataLoader object at 0x128ec34e0&gt;
+&lt;torch.utils.data.dataloader.DataLoader object at 0x128ec34a8&gt;
+&lt;torch.utils.data.dataloader.DataLoader object at 0x128ec3588&gt;
 </pre>
 </div>
 </div>
@@ -14251,7 +14350,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[88]:</div>
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># check to see if data loads</span>
@@ -14317,12 +14416,10 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[89]:</div>
+<div class="prompt input_prompt">In&nbsp;[17]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># make the model; just 3 conv2D layers for now</span>
-
-
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
@@ -14405,7 +14502,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[77]:</div>
+<div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
@@ -14434,7 +14531,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[78]:</div>
+<div class="prompt input_prompt">In&nbsp;[19]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">use_cuda</span><span class="p">,</span> <span class="n">save_path</span><span class="p">):</span>
@@ -14525,14 +14622,14 @@ Amount of dog test images: 836
 <pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">RuntimeError</span>                              Traceback (most recent call last)
-<span class="ansi-green-fg">&lt;ipython-input-78-08999e600cee&gt;</span> in <span class="ansi-cyan-fg">&lt;module&gt;</span>
+<span class="ansi-green-fg">&lt;ipython-input-19-08999e600cee&gt;</span> in <span class="ansi-cyan-fg">&lt;module&gt;</span>
 <span class="ansi-green-intense-fg ansi-bold">     64</span> 
 <span class="ansi-green-intense-fg ansi-bold">     65</span> <span class="ansi-red-fg"># train the model</span>
 <span class="ansi-green-fg">---&gt; 66</span><span class="ansi-red-fg"> </span>model_scratch <span class="ansi-blue-fg">=</span> train<span class="ansi-blue-fg">(</span><span class="ansi-cyan-fg">100</span><span class="ansi-blue-fg">,</span> training_scratch<span class="ansi-blue-fg">,</span> model_scratch<span class="ansi-blue-fg">,</span> optimizer_scratch<span class="ansi-blue-fg">,</span> criterion_scratch<span class="ansi-blue-fg">,</span> use_cuda<span class="ansi-blue-fg">,</span> <span class="ansi-blue-fg">&#39;model_scratch.pt&#39;</span><span class="ansi-blue-fg">)</span>
 <span class="ansi-green-intense-fg ansi-bold">     67</span> 
 <span class="ansi-green-intense-fg ansi-bold">     68</span> <span class="ansi-red-fg"># load the model that got the best validation accuracy</span>
 
-<span class="ansi-green-fg">&lt;ipython-input-78-08999e600cee&gt;</span> in <span class="ansi-cyan-fg">train</span><span class="ansi-blue-fg">(n_epochs, loader, model, optimizer, criterion, use_cuda, save_path)</span>
+<span class="ansi-green-fg">&lt;ipython-input-19-08999e600cee&gt;</span> in <span class="ansi-cyan-fg">train</span><span class="ansi-blue-fg">(n_epochs, loader, model, optimizer, criterion, use_cuda, save_path)</span>
 <span class="ansi-green-intense-fg ansi-bold">     20</span>             <span class="ansi-red-fg">## find the loss and update the model parameters accordingly</span>
 <span class="ansi-green-intense-fg ansi-bold">     21</span>             optimizer<span class="ansi-blue-fg">.</span>zero_grad<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">)</span>
 <span class="ansi-green-fg">---&gt; 22</span><span class="ansi-red-fg">             </span>output <span class="ansi-blue-fg">=</span> model_scratch<span class="ansi-blue-fg">(</span>data<span class="ansi-blue-fg">)</span>
@@ -14546,12 +14643,12 @@ Amount of dog test images: 836
 <span class="ansi-green-intense-fg ansi-bold">    490</span>         <span class="ansi-green-fg">for</span> hook <span class="ansi-green-fg">in</span> self<span class="ansi-blue-fg">.</span>_forward_hooks<span class="ansi-blue-fg">.</span>values<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">:</span>
 <span class="ansi-green-intense-fg ansi-bold">    491</span>             hook_result <span class="ansi-blue-fg">=</span> hook<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">,</span> input<span class="ansi-blue-fg">,</span> result<span class="ansi-blue-fg">)</span>
 
-<span class="ansi-green-fg">&lt;ipython-input-76-ca3b2a1f1abe&gt;</span> in <span class="ansi-cyan-fg">forward</span><span class="ansi-blue-fg">(self, x)</span>
-<span class="ansi-green-intense-fg ansi-bold">     24</span>         <span class="ansi-red-fg">## Define forward behavior</span>
-<span class="ansi-green-intense-fg ansi-bold">     25</span>         <span class="ansi-red-fg">## Start with convolutions-pooling etc.</span>
-<span class="ansi-green-fg">---&gt; 26</span><span class="ansi-red-fg">         </span>x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv1<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">     27</span>         x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv2<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">     28</span>         x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv3<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-fg">&lt;ipython-input-17-3f66de697bf5&gt;</span> in <span class="ansi-cyan-fg">forward</span><span class="ansi-blue-fg">(self, x)</span>
+<span class="ansi-green-intense-fg ansi-bold">     22</span>         <span class="ansi-red-fg">## Define forward behavior</span>
+<span class="ansi-green-intense-fg ansi-bold">     23</span>         <span class="ansi-red-fg">## Start with convolutions-pooling etc.</span>
+<span class="ansi-green-fg">---&gt; 24</span><span class="ansi-red-fg">         </span>x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv1<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">     25</span>         x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv2<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">     26</span>         x <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>pool<span class="ansi-blue-fg">(</span>F<span class="ansi-blue-fg">.</span>relu<span class="ansi-blue-fg">(</span>self<span class="ansi-blue-fg">.</span>conv3<span class="ansi-blue-fg">(</span>x<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
 
 <span class="ansi-green-fg">/Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages/torch/nn/modules/module.py</span> in <span class="ansi-cyan-fg">__call__</span><span class="ansi-blue-fg">(self, *input, **kwargs)</span>
 <span class="ansi-green-intense-fg ansi-bold">    487</span>             result <span class="ansi-blue-fg">=</span> self<span class="ansi-blue-fg">.</span>_slow_forward<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">*</span>input<span class="ansi-blue-fg">,</span> <span class="ansi-blue-fg">**</span>kwargs<span class="ansi-blue-fg">)</span>
@@ -14648,7 +14745,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[64]:</div>
+<div class="prompt input_prompt">In&nbsp;[17]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">## TODO: Specify data loaders</span>
@@ -14670,7 +14767,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[65]:</div>
+<div class="prompt input_prompt">In&nbsp;[18]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">training_transfer</span>
@@ -14686,13 +14783,13 @@ Amount of dog test images: 836
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[65]:</div>
+    <div class="prompt output_prompt">Out[18]:</div>
 
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;torch.utils.data.dataloader.DataLoader at 0x1244aecf8&gt;</pre>
+<pre>&lt;torch.utils.data.dataloader.DataLoader at 0x12f4c2550&gt;</pre>
 </div>
 
 </div>
@@ -14703,7 +14800,7 @@ Amount of dog test images: 836
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[69]:</div>
+<div class="prompt input_prompt">In&nbsp;[20]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">training_transfer</span><span class="p">))</span>
@@ -14724,7 +14821,7 @@ Amount of dog test images: 836
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>torch.Size([128, 1, 224, 224])
+<pre>torch.Size([128, 3, 224, 224])
 </pre>
 </div>
 </div>
